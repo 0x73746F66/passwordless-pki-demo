@@ -1,6 +1,9 @@
 **/.venv/
 .vite/
 .selected_target
+**/__pycache__/
+**/*.egg-info/
+**/*.pyc
 
 # Logs
 logs

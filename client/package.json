@@ -7,7 +7,7 @@
   "keywords": [
     "passwordless", "pki", "credentials", "login"
   ],
-  "license": "BSD-3-Clause ",
+  "license": "BSD-3-Clause",
   "author": "Chris Langton <chris@langton.cloud>",
   "dependencies": {
     "vue": "^3.3.11",
@@ -20,6 +20,7 @@
     "eslint": "^8.49.0",
     "eslint-plugin-vue": "^9.17.0",
     "prettier": "^3.0.3",
-    "vite": "^5.0.10"
+    "vite": "^5.0.10",
+    "sass": "^1.69.6"
   }
 }

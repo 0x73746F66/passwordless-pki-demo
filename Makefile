@@ -47,6 +47,10 @@ help: ## This help function
 # Targets
 setup: ## setup project
 	@cd client ; npm i --include=dev
+	. .venv/bin/activate
+	pip install -U pip-tools
+	@cd server ; pip install -e '.[all]'
+	@cd server ; pip-compile -q --generate-hashes --output-file=requirements.txt --strip-extras pyproject.toml
 
 vite: ## Run dev
 	@cd client ; npx vite
@@ -56,6 +60,9 @@ preview: ## Run test
 
 build: ## Run build
 	@cd client ; npx vite build
+
+run: ## Run server
+	@cd server ; uvicorn server:app --reload
 
 format:
 	@cd client ; npx prettier --write src/

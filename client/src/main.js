@@ -125,18 +125,3 @@ window.getStore = (db, storeName, keyId) => {
         }
     })
 }
-
-(async function main() {
-    const db = await openDB()
-    const fingerprint = await generateFingerprint()
-    const clientId = await sha1(JSON.stringify(fingerprint))
-    let keyData = await getStore(db, 'encKeys', clientId)
-    if (!keyData) {
-        console.log(`GENERATING KEYS`)
-        const keyPair = await generateKeyPair()
-        const publicKey = keyPair.publicKey
-        const privateKey = keyPair.privateKey
-        keyData = { clientId, fingerprint, publicKey, privateKey }
-        await putStore(db, 'encKeys', keyData)
-    }
-})()
