@@ -1,16 +1,39 @@
 <template>
-  <div class="session">
-        <h1>Session data</h1>
-        <div><div class="label">Client ID: </div>{{ clientId }}</div>
-        <div><div class="label">Email: </div>{{ email }}</div>
-        <div class="label">Fingerprint: </div><pre>{{ fingerprint }}</pre>
-        <div class="label">Public Key: </div><pre>{{ publicKey }}</pre>
-        <div class="label">Private Key: </div><pre>{{ privateKey }}</pre>
-        <div>
-          <button @click="submitPublicKey">Check</button>
-        </div>
+    <div class="session-data">
+      <h1>Session Information</h1>
+      <button @click="submitPublicKey">Check</button>
+      <div v-if="response">
+          <h2>Response from Server:</h2>
+          <p>{{ response }}</p>
       </div>
+      <div class="data-section">
+        <h2>Client ID:</h2>
+        <p>{{ clientId }}</p>
+      </div>
+      <div class="data-section">
+        <h2>Email:</h2>
+        <p>{{ email }}</p>
+      </div>
+      <div class="data-section">
+        <h2>Fingerprint:</h2>
+        <pre>{{ fingerprint }}</pre>
+      </div>
+      <div class="data-section">
+        <h2>Public Key:</h2>
+        <pre>{{ publicKey }}</pre>
+      </div>
+      <div class="data-section">
+        <h2>Private Key:</h2>
+        <pre>{{ privateKey }}</pre>
+      </div>
+    </div>
 </template>
+
+<script setup>
+import { openDB, getStore } from '@/utils/db'
+import { sha1, wrapPEM } from '@/utils/crypto'
+import { generateFingerprint } from '@/utils/device'
+</script>
 
 <script scoped>
 export default {
@@ -21,20 +44,23 @@ export default {
             fingerprint: "Not set",
             publicKey: "Not set",
             privateKey: "Not set",
+            response: ""
         }
     },
     async mounted() {
         const db = await openDB()
 
         const keyData = await getStore(db, 'encKeys', await sha1(JSON.stringify(await generateFingerprint())))
-        this.email = keyData.email || this.email
-        this.clientId = keyData.clientId || this.clientId
-        this.fingerprint = keyData.fingerprint || this.fingerprint
-        if (keyData.publicKey) {
-            this.publicKey = await wrapPEM(keyData.publicKey)
-        }
-        if (keyData.privateKey) {
-            this.privateKey = await wrapPEM(keyData.privateKey, true)
+        if (keyData) {
+            this.email = keyData.email || this.email
+            this.clientId = keyData.clientId || this.clientId
+            this.fingerprint = keyData.fingerprint || this.fingerprint
+            if (keyData.publicKey) {
+                this.publicKey = await wrapPEM(keyData.publicKey)
+            }
+            if (keyData.privateKey) {
+                this.privateKey = await wrapPEM(keyData.privateKey, true)
+            }
         }
     },
     methods: {
@@ -47,12 +73,13 @@ export default {
                     },
                     body: JSON.stringify({
                         public_key: this.publicKey,
-                        uniqueI_id: this.email
+                        unique_id: this.email
                     })
                 });
 
                 if (response.ok) {
                     const result = await response.json();
+                    this.response = result
                     console.log('Success:', result);
                 } else {
                     console.error('Response Error:', response.statusText);
@@ -66,24 +93,46 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@media (min-width: 1024px) {
-  .session {
-    .label {
-        font-weight: 600;
+.session-data {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: #f9f9f9;
+  color: #1d1d1d;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+
+  h1 {
+    text-align: center;
+  }
+
+  .data-section {
+    margin-top: 20px;
+
+    p, pre {
+      background-color: #fff;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      overflow-x: auto;
     }
-    min-height: 100vh;
-    > pre {
-        white-space: pre-wrap;
+
+    pre {
+      white-space: pre-wrap;
+      word-wrap: break-word;
     }
-    button {
-        border: 0;
-        cursor: pointer;
-        padding: 0.4em 2em;
-        background-color: teal;
-    }
-    button:active {
-        margin: 1px 0 0 1px;
-    }
+  }
+  button {
+      border: 0;
+      color: #1d1d1d;
+      font-size: 1em;
+      cursor: pointer;
+      padding: .8em 2.5em;
+      border-radius: .4em;
+      background-color: teal;
+  }
+  button:active {
+      margin: 1px 0 0 1px;
   }
 }
 </style>

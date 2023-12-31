@@ -20,6 +20,9 @@
 
 <script setup>
 import FormHelpDescription from '@/components/FormHelpDescription.vue';
+import { openDB, getStore, putStore } from '@/utils/db'
+import { sha1, generateKeyPair, wrapPEM } from '@/utils/crypto'
+import { generateFingerprint } from '@/utils/device'
 </script>
 
 <script>
@@ -47,6 +50,7 @@ export default {
         this.keyData.clientId = await sha1(JSON.stringify(this.keyData.fingerprint))
         const keyData = await getStore(db, 'encKeys', this.keyData.clientId)
         if (keyData?.privateKey) {
+            this.formData.uniqueId = keyData.email
             this.keyData.publicKey = keyData.publicKey
             this.keyData.privateKey = keyData.privateKey
         } else {
