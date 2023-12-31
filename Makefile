@@ -50,7 +50,7 @@ setup: ## setup project
 	. .venv/bin/activate
 	pip install -U pip-tools
 	@cd server ; pip install -e '.[all]'
-	@cd server ; pip-compile -q --generate-hashes --output-file=requirements.txt --strip-extras pyproject.toml
+	@cd server ; pip-compile -q --generate-hashes --output-file=requirements.lock --strip-extras pyproject.toml
 
 vite: ## Run dev
 	@cd client ; npx vite

@@ -23,7 +23,6 @@ import FormHelpDescription from '@/components/FormHelpDescription.vue';
 </script>
 
 <script>
-const db = await openDB()
 export default {
     components: {
         FormHelpDescription
@@ -35,7 +34,6 @@ export default {
             },
             keyData: {
                 clientId: null,
-                email: null,
                 fingerprint: null,
                 publicKey: null,
                 privateKey: null
@@ -44,44 +42,49 @@ export default {
         };
     },
     async mounted() {
+        const db = await openDB()
         this.keyData.fingerprint = await generateFingerprint()
         this.keyData.clientId = await sha1(JSON.stringify(this.keyData.fingerprint))
-        this.keyData = await getStore(db, 'encKeys', this.keyData.clientId)
-        if (!this.keyData?.privateKey) {
+        const keyData = await getStore(db, 'encKeys', this.keyData.clientId)
+        if (keyData?.privateKey) {
+            this.keyData.publicKey = keyData.publicKey
+            this.keyData.privateKey = keyData.privateKey
+        } else {
             console.log(`GENERATING KEYS`)
             const keyPair = await generateKeyPair()
             this.keyData.publicKey = keyPair.publicKey
             this.keyData.privateKey = keyPair.privateKey
-            await putStore(db, 'encKeys', this.keyData)
         }
     },
     methods: {
         async register() {
-            try {
-                this.keyData.email = this.formData.uniqueId
-                const response = await fetch('http://localhost:8000/register', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        client_id: this.keyData.clientId,
-                        fingerprint: this.keyData.fingerprint,
-                        public_key: await wrapPEM(this.keyData.publicKey),
-                        email: this.formData.uniqueId
-                    })
+            const response = await fetch('http://localhost:8000/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    client_id: this.keyData.clientId,
+                    fingerprint: this.keyData.fingerprint,
+                    public_key: await wrapPEM(this.keyData.publicKey),
+                    unique_id: this.formData.uniqueId
                 })
+            })
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const data = await response.json();
-                this.response = data;
-            } catch (error) {
-                console.error('Error:', error);
-                this.response = 'Error occurred while sending data to the server.';
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
+
+            const data = await response.json();
+            this.response = data;
+            const db = await openDB()
+            await putStore(db, 'encKeys', {
+                clientId: this.keyData.clientId,
+                email: this.formData.uniqueId,
+                fingerprint: JSON.parse(JSON.stringify(this.keyData.fingerprint)),
+                publicKey: this.keyData.publicKey,
+                privateKey: this.keyData.privateKey
+            })
         }
     }
 };

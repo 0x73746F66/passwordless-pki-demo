@@ -5,7 +5,7 @@
       <FormHelpDescription text="This form allows you to submit a message. The message will be encrypted on the server, and you'll receive an encrypted response which only you can read but the server never keeps the secret." />
       <div>
         <label for="email">Spoof or real client ID:</label>
-        <input type="email" id="email" placeholder="Try something or use your real one" v-model="formData.client_id" required>
+        <input type="email" id="email" placeholder="Try something or use your real one" v-model="formData.uniqueId" required>
       </div>
       <div>
         <label for="message">Message:</label>
@@ -35,7 +35,7 @@ export default {
   data() {
     return {
       formData: {
-        client_id: '',
+        uniqueId: '',
         message: ''
       },
       response: null
@@ -50,7 +50,7 @@ export default {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            client_id: this.formData.client_id,
+            unique_id: this.formData.uniqueId,
           })
         });
 
@@ -60,6 +60,9 @@ export default {
 
         const data = await response.json();
         this.response = data;
+
+
+        
       } catch (error) {
         console.error('Error:', error);
         this.response = 'Error occurred while sending data to the server.';

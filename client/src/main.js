@@ -10,7 +10,7 @@ app.use(router)
 
 app.mount('#app')
 
-window.wrapPEM = async function(key, isPrivate = false) {
+window.wrapPEM = async (key, isPrivate = false) => {
     const keyType = !!isPrivate ? "PRIVATE" : "PUBLIC"
     let exportedKey = await crypto.subtle.exportKey(isPrivate ? "pkcs8" : "spki", key)
     const exportedAsString = String.fromCharCode.apply(null, new Uint8Array(exportedKey))
@@ -18,7 +18,20 @@ window.wrapPEM = async function(key, isPrivate = false) {
     const pemExported = `-----BEGIN ${keyType} KEY-----\n${exportedAsBase64}\n-----END ${keyType} KEY-----`
     return pemExported
 }
-window.generateKeyPair = async function() {
+window.pemToArrayBuffer = pem => {
+    const b64Lines = pem.split('\n').filter(line => line.trim() && !line.includes('---'))
+    const b64String = b64Lines.join('')
+    return base64ToArrayBuffer(b64String)
+}
+window.base64ToArrayBuffer = base64 => {
+    const binaryString = window.atob(base64)
+    const bytes = new Uint8Array(binaryString.length)
+    for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i)
+    }
+    return bytes.buffer
+}
+window.generateKeyPair = async () => {
     try {
         const keyPair = await crypto.subtle.generateKey({
             name: "RSA-OAEP",
@@ -32,12 +45,12 @@ window.generateKeyPair = async function() {
         throw error
     }
 }
-window.sha1 = async function(data) {
+window.sha1 = async data => {
     const buffer = new TextEncoder().encode(data)
     const digest = await crypto.subtle.digest('SHA-1', buffer)
     return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('')
 }
-window.generateFingerprint = async function() {
+window.generateFingerprint = async () => {
     const fingerprintText = "passwordless-pki-demo"
     const canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d')
@@ -105,6 +118,7 @@ window.putStore = (db, storeName, data) => {
             reject(event.target.error)
         }
         const objectStore = transaction.objectStore(storeName)
+        console.log(data)
         const request = objectStore.put(data)
         request.onsuccess = event => {
             resolve(event.target.result)
@@ -124,4 +138,29 @@ window.getStore = (db, storeName, keyId) => {
             resolve(event.target.result)
         }
     })
+}
+window.decryptMessage = async (encryptedMessageBase64, privateKey) => {
+    // Convert the PEM formatted private key to a format usable by the Web Crypto API
+    const pkey = await window.crypto.subtle.importKey(
+        'pkcs8',
+        privateKey,
+        {
+            name: 'RSA-OAEP',
+            hash: 'SHA-512'
+        },
+        false,
+        ['decrypt']
+    )
+    // Decode the base64 encrypted message
+    const encryptedMessage = base64ToArrayBuffer(encryptedMessageBase64)
+    // Decrypt the message
+    const decrypted = await window.crypto.subtle.decrypt(
+        {
+            name: 'RSA-OAEP'
+        },
+        pkey,
+        encryptedMessage
+    )
+
+    return new TextDecoder().decode(decrypted)
 }

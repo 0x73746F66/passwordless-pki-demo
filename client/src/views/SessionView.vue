@@ -7,7 +7,7 @@
         <div class="label">Public Key: </div><pre>{{ publicKey }}</pre>
         <div class="label">Private Key: </div><pre>{{ privateKey }}</pre>
         <div>
-          <button @click="submitPublicKey">Save</button>
+          <button @click="submitPublicKey">Check</button>
         </div>
       </div>
 </template>
@@ -27,7 +27,7 @@ export default {
         const db = await openDB()
 
         const keyData = await getStore(db, 'encKeys', await sha1(JSON.stringify(await generateFingerprint())))
-        console.log('keyData', keyData)
+        this.email = keyData.email || this.email
         this.clientId = keyData.clientId || this.clientId
         this.fingerprint = keyData.fingerprint || this.fingerprint
         if (keyData.publicKey) {
@@ -40,16 +40,14 @@ export default {
     methods: {
         submitPublicKey: async function() {
             try {
-                const response = await fetch('http://localhost:8000/submit-key', {
+                const response = await fetch('http://localhost:8000/check-key', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        client_id: this.clientId,
-                        fingerprint: this.fingerprint,
                         public_key: this.publicKey,
-                        email: null
+                        uniqueI_id: this.email
                     })
                 });
 
