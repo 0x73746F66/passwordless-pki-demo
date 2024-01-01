@@ -1,19 +1,14 @@
 import logging
-from secrets import compare_digest
 
 import models
 import utils
 from cryptography.hazmat.primitives import serialization
-from fastapi import Depends, FastAPI, Request, status
+from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
 app = FastAPI()
-security = HTTPBasic()
-BASIC_AUTH_USER = b'demo'
-BASIC_AUTH_PASSWD = b'D7lBs4uV#ngRg8hq5$'
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -29,17 +24,18 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 	content = {'status_code': 10422, 'message': exc_str, 'data': None}
 	return JSONResponse(content=content, status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
 
-@app.get("/")
-async def list_keys(credentials: HTTPBasicCredentials = Depends(security)):
-    if not all([compare_digest(credentials.username.encode('utf8'), BASIC_AUTH_USER), compare_digest(credentials.password.encode('utf8'), BASIC_AUTH_PASSWD)]):
-        return JSONResponse(content=None, status_code=status.HTTP_401_UNAUTHORIZED, headers={"WWW-Authenticate": "Basic"})
-
+@app.get("/list-keys")
+async def list_keys():
     return {"records": utils.get_all_public_keys()}
 
 @app.post("/check-key")
 async def check_key(request: models.PublicKeyRequest):
     data = utils.get_public_key(request.unique_id)
     return {"exists": data.get('public_key') == request.public_key}
+
+@app.post("/revoke-key")
+async def revoke_key(request: models.RevokeKeyRequest):
+    return {"result": utils.delete_public_key(request.client_id)}
 
 @app.post("/encrypt-message")
 async def encrypt_message(request: models.EncryptRequest):

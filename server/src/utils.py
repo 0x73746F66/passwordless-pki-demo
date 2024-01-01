@@ -28,6 +28,17 @@ def save_public_key_to_db(client_id: str, fingerprint:str, public_key: str, emai
     conn.commit()
     conn.close()
 
+def delete_public_key(client_id: str):
+    conn = sqlite3.connect(DATABASE_FILE)
+    cursor = conn.cursor()
+
+    cursor.execute('DELETE FROM public_keys WHERE client_id=?', (client_id,))
+    conn.commit()
+    lastrowid = cursor.lastrowid
+    conn.close()
+
+    return lastrowid
+
 def get_public_key(email: str):
     conn = sqlite3.connect(DATABASE_FILE)
     cursor = conn.cursor()
@@ -37,7 +48,7 @@ def get_public_key(email: str):
 
     conn.close()
 
-    return {'client_id':row[0], 'fingerprint': json.loads(row[1]), 'public_key': row[2], 'email': email}
+    return {} if not row else {'client_id':row[0], 'fingerprint': json.loads(row[1]), 'public_key': row[2], 'email': email}
 
 def get_all_public_keys():
     conn = sqlite3.connect(DATABASE_FILE)

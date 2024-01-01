@@ -35,7 +35,7 @@ import { sha1, wrapPEM } from '@/utils/crypto'
 import { generateFingerprint } from '@/utils/device'
 </script>
 
-<script scoped>
+<script>
 export default {
     data() {
         return {
@@ -64,28 +64,24 @@ export default {
         }
     },
     methods: {
-        submitPublicKey: async function() {
-            try {
-                const response = await fetch('http://localhost:8000/check-key', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        public_key: this.publicKey,
-                        unique_id: this.email
-                    })
-                });
+        async submitPublicKey() {
+            const response = await fetch('http://localhost:8000/check-key', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    public_key: this.publicKey,
+                    unique_id: this.email
+                })
+            });
 
-                if (response.ok) {
-                    const result = await response.json();
-                    this.response = result
-                    console.log('Success:', result);
-                } else {
-                    console.error('Response Error:', response.statusText);
-                }
-            } catch (error) {
-                console.error('Network Error:', error.message);
+            if (response.ok) {
+                const result = await response.json();
+                this.response = result
+                console.log('Success:', result);
+            } else {
+                console.error('Response Error:', response.statusText);
             }
         }
     }

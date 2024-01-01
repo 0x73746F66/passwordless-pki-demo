@@ -3,7 +3,7 @@ from pydantic import BaseModel
 
 class Fingerprint(BaseModel):
     canvasHash: str
-    deviceMemory: str
+    deviceMemory: str | int
     hardwareConcurrency: int
     lang: str
     platform: str
@@ -14,6 +14,9 @@ class Fingerprint(BaseModel):
 class EncryptRequest(BaseModel):
     unique_id: str
     message: str
+
+class RevokeKeyRequest(BaseModel):
+    client_id: str
 
 class PublicKeyRequest(BaseModel):
     unique_id: str
