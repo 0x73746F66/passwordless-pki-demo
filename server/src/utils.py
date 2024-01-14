@@ -1,7 +1,9 @@
 import base64
+import binascii
 import json
 import sqlite3
 
+from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 
@@ -72,3 +74,35 @@ def encrypt_with_public_key(message: str, public_key) -> str:
     )
     # Encode the encrypted message with base64 for safe transport
     return base64.b64encode(encrypted).decode()
+
+def verify_signature(public_key, signature: str, message: str):
+    try:
+        public_key.verify(
+            binascii.unhexlify(signature),
+            message.encode(),
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA512()),
+                salt_length=32
+            ),
+            hashes.SHA512()
+        )
+        return True
+    except InvalidSignature:
+        return False
+
+def extract_authz(header_value):
+    try:
+        # Splitting the header value into components
+        parts = header_value.split()
+
+        # Verifying that the header format is as expected
+        if len(parts) == 4 and parts[0] == "Digest":
+            # Extracting the sig, ts, and id values
+            sig = parts[1].split('=')[1].strip('"')
+            ts = parts[2].split('=')[1].strip('"')
+            id = parts[3].split('=')[1].strip('"')
+            return sig, ts, id
+        else:
+            return None, None, None
+    except Exception as e:
+        return None, None, None

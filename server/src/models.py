@@ -12,7 +12,6 @@ class Fingerprint(BaseModel):
     webGLHash: str
 
 class EncryptRequest(BaseModel):
-    unique_id: str
     message: str
 
 class RevokeKeyRequest(BaseModel):

@@ -3,7 +3,7 @@ import logging
 import models
 import utils
 from cryptography.hazmat.primitives import serialization
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, Header, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -38,13 +38,19 @@ async def revoke_key(request: models.RevokeKeyRequest):
     return {"result": utils.delete_public_key(request.client_id)}
 
 @app.post("/encrypt-message")
-async def encrypt_message(request: models.EncryptRequest):
-    data = utils.get_public_key(request.unique_id)
+async def encrypt_message(request: models.EncryptRequest, authorization: str = Header(None)):
+    if not authorization:
+        return JSONResponse(content={'encrypted_message': None}, status_code=status.HTTP_401_UNAUTHORIZED)
+    sig, ts, unique_id = utils.extract_authz(authorization)
+    data = utils.get_public_key(unique_id)
     public_key = serialization.load_pem_public_key(
         data['public_key'].encode(),
     )
-    encrypted_message = utils.encrypt_with_public_key(request.message, public_key)
-    return {"encrypted_message": encrypted_message}
+    if utils.verify_signature(public_key, sig, f"{ts}|{unique_id}|{request.message}"):
+        encrypted_message = utils.encrypt_with_public_key(request.message, public_key)
+        return {"encrypted_message": encrypted_message}
+    else:
+        return JSONResponse(content={'encrypted_message': None}, status_code=status.HTTP_403_FORBIDDEN)
 
 @app.post("/register")
 async def register(request: models.RegisterData):

@@ -3,6 +3,9 @@
     "Vue.volar",
     "Vue.vscode-typescript-vue-plugin",
     "dbaeumer.vscode-eslint",
-    "esbenp.prettier-vscode"
+    "esbenp.prettier-vscode",
+    "ms-python.python",
+    "bungcip.better-toml",
+    "charliermarsh.ruff"
   ]
 }
