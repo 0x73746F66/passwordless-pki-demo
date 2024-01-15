@@ -2,10 +2,18 @@
   <div>
     <form class="form-container" @submit.prevent="register">
       <h1>Register with server</h1>
-      <FormHelpDescription text="Send the device public key to the server with a unique client ID" />
+      <FormHelpDescription
+        text="Send the device public key to the server with a unique client ID"
+      />
       <div>
         <label for="email">Unique client ID:</label>
-        <input type="email" id="email" placeholder="Use email or something else that the server has never seen" v-model="formData.uniqueId" required>
+        <input
+          type="email"
+          id="email"
+          placeholder="Use email or something else that the server has never seen"
+          v-model="formData.uniqueId"
+          required
+        />
       </div>
       <button type="submit">Register Client</button>
     </form>
@@ -15,17 +23,15 @@
       <p>{{ response }}</p>
     </div>
   </div>
-
 </template>
 
 <script setup>
-import FormHelpDescription from '@/components/FormHelpDescription.vue';
-import { openDB, getStore, putStore } from '@/utils/db'
-import { sha1, generateKeyPair, wrapPEM } from '@/utils/crypto'
-import { generateFingerprint } from '@/utils/device'
+import FormHelpDescription from '@/components/FormHelpDescription.vue'
+import App from '@/utils/app'
 </script>
 
 <script>
+const app = new App()
 export default {
     components: {
         FormHelpDescription
@@ -33,65 +39,21 @@ export default {
     data() {
         return {
             formData: {
-                uniqueId: "",
+                uniqueId: ''
             },
-            keyData: {
-                clientId: null,
-                fingerprint: null,
-                publicKey: null,
-                privateKey: null
-            },
-            response: null
-        };
+            response: "None"
+        }
     },
     async mounted() {
-        const db = await openDB()
-        this.keyData.fingerprint = await generateFingerprint()
-        this.keyData.clientId = await sha1(JSON.stringify(this.keyData.fingerprint))
-        const keyData = await getStore(db, 'encKeys', this.keyData.clientId)
-        if (keyData?.privateKey) {
-            this.formData.uniqueId = keyData.email
-            this.keyData.publicKey = keyData.publicKey
-            this.keyData.privateKey = keyData.privateKey
-        } else {
-            console.log(`GENERATING KEYS`)
-            const keyPair = await generateKeyPair()
-            this.keyData.publicKey = keyPair.publicKey
-            this.keyData.privateKey = keyPair.privateKey
-        }
+        const storeData = await app.data()
+        this.formData.uniqueId = storeData.uniqueId
     },
     methods: {
         async register() {
-            const response = await fetch('http://localhost:8000/register', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    client_id: this.keyData.clientId,
-                    fingerprint: this.keyData.fingerprint,
-                    public_key: await wrapPEM(this.keyData.publicKey),
-                    unique_id: this.formData.uniqueId
-                })
-            })
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            this.response = data;
-            const db = await openDB()
-            await putStore(db, 'encKeys', {
-                clientId: this.keyData.clientId,
-                email: this.formData.uniqueId,
-                fingerprint: JSON.parse(JSON.stringify(this.keyData.fingerprint)),
-                publicKey: this.keyData.publicKey,
-                privateKey: this.keyData.privateKey
-            })
+            this.response = await app.register(this.formData.uniqueId)
         }
     }
-};
+}
 </script>
 
 <style scoped lang="scss">
@@ -115,7 +77,7 @@ $label-spacing: 5px;
     margin-bottom: $label-spacing;
   }
 
-  input[type="email"],
+  input[type='email'],
   textarea {
     width: 100%;
     padding: 8px;

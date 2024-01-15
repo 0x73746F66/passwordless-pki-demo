@@ -25,8 +25,19 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 	return JSONResponse(content=content, status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
 
 @app.get("/list-keys")
-async def list_keys():
-    return {"records": utils.get_all_public_keys()}
+async def list_keys(authorization: str = Header(None)):
+    if not authorization:
+        return JSONResponse(content={'encrypted_message': None}, status_code=status.HTTP_401_UNAUTHORIZED)
+    sig, ts, unique_id = utils.extract_authz(authorization)
+    data = utils.get_public_key(unique_id)
+    if key := data.get('public_key'):
+        public_key = serialization.load_pem_public_key(
+            key.encode(),
+        )
+        if utils.verify_signature(public_key, sig, f"{ts}|{unique_id}"):
+            return {"records": utils.get_all_public_keys()}
+    else:
+        return JSONResponse(content={'result': None}, status_code=status.HTTP_403_FORBIDDEN)
 
 @app.post("/check-key")
 async def check_key(request: models.PublicKeyRequest):
@@ -34,8 +45,19 @@ async def check_key(request: models.PublicKeyRequest):
     return {"exists": data.get('public_key') == request.public_key}
 
 @app.post("/revoke-key")
-async def revoke_key(request: models.RevokeKeyRequest):
-    return {"result": utils.delete_public_key(request.client_id)}
+async def revoke_key(request: models.RevokeKeyRequest, authorization: str = Header(None)):
+    if not authorization:
+        return JSONResponse(content={'encrypted_message': None}, status_code=status.HTTP_401_UNAUTHORIZED)
+    sig, ts, unique_id = utils.extract_authz(authorization)
+    data = utils.get_public_key(unique_id)
+    if key := data.get('public_key'):
+        public_key = serialization.load_pem_public_key(
+            key.encode(),
+        )
+        if utils.verify_signature(public_key, sig, f"{ts}|{unique_id}|{request.client_id}"):
+            return {"result": utils.delete_public_key(request.client_id) == 0}
+    else:
+        return JSONResponse(content={'result': None}, status_code=status.HTTP_403_FORBIDDEN)
 
 @app.post("/encrypt-message")
 async def encrypt_message(request: models.EncryptRequest, authorization: str = Header(None)):
@@ -43,12 +65,13 @@ async def encrypt_message(request: models.EncryptRequest, authorization: str = H
         return JSONResponse(content={'encrypted_message': None}, status_code=status.HTTP_401_UNAUTHORIZED)
     sig, ts, unique_id = utils.extract_authz(authorization)
     data = utils.get_public_key(unique_id)
-    public_key = serialization.load_pem_public_key(
-        data['public_key'].encode(),
-    )
-    if utils.verify_signature(public_key, sig, f"{ts}|{unique_id}|{request.message}"):
-        encrypted_message = utils.encrypt_with_public_key(request.message, public_key)
-        return {"encrypted_message": encrypted_message}
+    if key := data.get('public_key'):
+        public_key = serialization.load_pem_public_key(
+            key.encode(),
+        )
+        if utils.verify_signature(public_key, sig, f"{ts}|{unique_id}|{request.message}"):
+            encrypted_message = utils.encrypt_with_public_key(request.message, public_key)
+            return {"encrypted_message": encrypted_message}
     else:
         return JSONResponse(content={'encrypted_message': None}, status_code=status.HTTP_403_FORBIDDEN)
 

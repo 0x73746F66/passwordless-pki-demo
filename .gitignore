@@ -1,6 +1,7 @@
 **/.venv/
 .vite/
 .selected_target
+.targets
 **/__pycache__/
 **/*.egg-info/
 **/*.pyc
