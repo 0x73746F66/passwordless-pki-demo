@@ -16,6 +16,7 @@ Demonstrate the use of RSA-OAEP for encrypting and decrypting messages in a web 
 - sign the message with the private key so the server can verify it with the public key to verify requesters identity
 - TODO: use signed unix timestamp for expiry
 - TODO: sign a nonce that is stored on server to prevent replay messages
+- TODO: Change RSA to ECDSA
 
 ## Installation
 
